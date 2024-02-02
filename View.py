@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import ttk, simpledialog, messagebox
 import tkinter.font as font
 from tkinter.ttk import Treeview
+from datetime import datetime
 
 # View fail on põhiaken
 
@@ -29,12 +30,19 @@ class View(Tk):
 
         # Enter klahvi vajutus tööle
         self.bind('<Return>', self.controller.send_click)
+        self.protocol('WM_DELETE_WINDOW', self.on_close)  # Paneb klikiga mängu põhiakna kinni
 
 
     def main(self):
             self.mainloop()
 
         # teeme 2 frame'i funktsioonid
+
+    def center_window(self, width, height):
+        x = (self.winfo_screenwidth() // 2) - (width // 2)  # asetab akna olemasoleva ekraani keskele
+        y = (self.winfo_screenheight() // 2) - (height // 2)
+        self.geometry(f'{width}x{height}+{x}+{y}') # ekraani laius * kõrgus ja liita x ja y-koordinaadid
+
     def create_top_frame(self):
         frame = Frame(self, bg='lightblue', height=15)
         frame.pack(expand=True, fill=BOTH)  # BOTH on tkinteris konstant
@@ -73,22 +81,72 @@ class View(Tk):
         scrollbar.pack(side=RIGHT, fill=Y)  #  scrollbar paremale poole ja täita vaid ülevalt alla osa
         text_box.pack(expand=True, fill=BOTH, padx=5, pady=5)
         #  edetabeli nupp
-        btn_scoreboard = Button(self.top_frame, text='Edetabel', font=self.default_font)
+        btn_scoreboard = Button(self.top_frame, text='Edetabel', font=self.default_font, command=lambda: self.controller.scoreboard_click())
         btn_scoreboard.grid(row=0, column=2, padx=5, pady=5)
 
         #  tagastamine algusesse - lbl_info, scrollbar ei muutu
         return btn_new_game, num_entry, btn_send,text_box, btn_scoreboard
 
+    def create_pop_up_window(self):  # Tekitab uue akna ekraani keskele
+        top = Toplevel(self)
+        top.title('Edetabel')
+        top_width = 500
+        top_height = 150
+        x = (top.winfo_screenwidth() // 2) - (top_width // 2)  # asetab akna olemasoleva ekraani keskele
+        y = (top.winfo_screenheight() // 2) - (top_height // 2)
+        top.geometry(f'{top_width}x{top_height}+{x}+{y}')  # ekraani laius * kõrgus ja liita x ja y-koordinaadid
+        #  Akna suurust ei saa muuta
+        top.resizable(False, False)
 
+        top.grab_set()  # Modal ei saa klikkida nagu põhiaknal
+        top.focus()  # Fookus top aknale
 
+        frame = Frame(top)  # Frame luuakse top aknale
+        frame.pack(fill=BOTH, expand=True)
 
+        return frame  # Frame peale tuleb tabel
 
+    def generate_scoreboard(self, frame, data):  # kaasa argumentidena frame, data
+        my_table = Treeview(frame)
+        # Kerimisriba paremale poole serva
+        vsb = Scrollbar(frame, orient=VERTICAL, command=my_table.yview)  # Klikkimisel, mis juhtub
+        vsb.pack(side=RIGHT, fill=Y)
+        my_table.configure(yscrollcommand=vsb.set)
 
+        my_table['columns'] = ('name', 'steps', 'pc_nr', 'cheater', 'date_time')
+        #  Loome tabeli päise ja veeruseaded
+        my_table.column('#0', width=0, stretch=NO)  # tühi tulp
+        my_table.column('name', anchor=CENTER, width=100)
+        my_table.column('steps', anchor=CENTER, width=50)
+        my_table.column('pc_nr', anchor=CENTER, width=50)
+        my_table.column('cheater', anchor=CENTER, width=50)
+        my_table.column('date_time', anchor=CENTER, width=80)
 
+        #  Tabeli päis heading
+        my_table.heading('#0', text='', anchor=CENTER)
+        my_table.heading('name', text='Nimi', anchor=CENTER)
+        my_table.heading('steps', text='Sammud', anchor=CENTER)
+        my_table.heading('pc_nr', text='Arv', anchor=CENTER)
+        my_table.heading('cheater', text='Petja', anchor=CENTER)
+        my_table.heading('date_time', text='Kuupäev', anchor=CENTER)
 
+        #  Tabeli täitmine andmetega for loobiga
+        x = 0
+        for player in data:
+            date_time = datetime.strptime(player.date_time,'%Y-%m-%d %H:%M:%S').strftime('%d.%m.%Y %H:%M:%S')
 
+            if player.cheater:
+                cheater = "Jah"
+            else:
+                cheater = "Ei"
 
-    def center_window(self, width, height):
-        x = (self.winfo_screenwidth() // 2) - (width // 2)  # asetab akna olemasoleva ekraani keskele
-        y = (self.winfo_screenheight() // 2) - (width // 2)
-        self.geometry(f'{width}x{height}+{x}+{y}') # ekraani laius * kõrgus ja liita x ja y-koordinaadid
+            my_table.insert(parent='', index='end', iid=x, values=(player.name, player.steps, player.pc_nr,
+                                                                     player.cheater, date_time))
+            # index = end - kirjutab tabeli lõppu
+            x += 1
+
+        my_table.pack(fill=BOTH, expand=True)
+
+    def on_close(self):
+        if messagebox.askokcancel('Välju mängust', 'Kas soovid tõesti mängust väljuda?'):
+            self.destroy()

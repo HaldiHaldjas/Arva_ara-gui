@@ -2,6 +2,8 @@ import sqlite3
 from datetime import datetime
 from random import randint
 
+from Score import Score
+
 
 class Model:
     def __init__(self):  # konstruktor
@@ -105,3 +107,25 @@ class Model:
                 if connection:
                     connection.close()  # Ühte faili ei saa 2 korda avada
 
+    def read_from_table(self):
+        connection = None  # Loome andmebaasiga ühenduse
+        try:
+            connection = sqlite3.connect(self.__database)
+            sql = 'SELECT * FROM ' + self.__table + ' ORDER BY steps, name, date_time DESC'
+            #  Sorteerib esmalt sammude järgi, seejärel nime ja siis aja järgi.
+            cursor = connection.execute(sql)  # Sel korral parameetreid pole
+            data = cursor.fetchall()
+            #  For loopiga loeme andmeid
+
+            result = []
+            for row in data:
+                result.append(Score(row[1], row[2], row[3], row[4], row[5]))  # Row[0] on id
+
+            return result
+
+            #  Algne pass - Bloki osa ei tohi jätta tühjaks
+        except sqlite3.Error as error:
+            print(f'viga: {error} {self.__database} andmebaasiga ühendumisel')
+        finally:
+            if connection:
+                connection.close()

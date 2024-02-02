@@ -48,9 +48,12 @@ class Controller:  #  klassi nimi vastavalt faili nimele
 
     def scoreboard_click(self):
         # TODO Edetabeli tegemine ja näitamine
-        pass
-
-
+        frame = self.view.create_pop_up_window()
+        #  Saada andmed frame´i peale
+        data = self.model.read_from_table()
+        #  Näita kogu kaadervärki - kõik, mis edetabelis kirjas
+        self.view.generate_scoreboard(frame, data)
+        #  Päringu tegemine andmebaasi
 
 
 
